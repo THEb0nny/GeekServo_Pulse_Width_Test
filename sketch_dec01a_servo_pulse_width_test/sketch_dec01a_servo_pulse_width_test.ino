@@ -5,18 +5,19 @@
 #define ENC_A_PIN 2 // Канал А энкодера
 #define ENC_B_PIN 3 // Канал В энкодера
 
-#define STOP_PULSE 1500 // Значение импульса остановки
-#define MIN_PULSE_VAL 300 // Минимальное значение диапазона импульса
-#define MAX_PULSE_VAL 2700 // Максимальное значение диапазона импульса
+#define MIN_PULSE_VAL 500 // Минимальное значение диапазона импульса
+#define MAX_PULSE_VAL 2500 // Максимальное значение диапазона импульса
+#define START_PULSE_VAL 1500 // Значение импульса при старте
+#define PULSE_STEP 5 // Шаг изменения импульса при прокрутке энкодера
 
-#define SERVO_PIN 10 // Пин серво мотора
+#define SERVO_PIN 10 // Пин сервомотора
 
 volatile int aPresState = -1; // Предыдущее состояние канала А
 volatile int value = 120; // Текущее значение ШИМ
 
 Servo servoMot; // Инициализация объектов моторов
 
-int pulse = STOP_PULSE; // Переменная для значения импульса
+int pulse = START_PULSE_VAL; // Переменная для значения импульса
 
 void setup() {
   //Открытие соединения на скорости
@@ -24,7 +25,7 @@ void setup() {
   Serial.setTimeout(10);
   while(!Serial); // Ждём открытия Serial
   Serial.println();
-  servoMot.attach(SERVO_PIN); // ПОдключение серво
+  servoMot.attach(SERVO_PIN, MIN_PULSE_VAL, MAX_PULSE_VAL); // ПОдключение серво
   //Инициализация входов
   pinMode(ENC_A_PIN, INPUT); // Подключение канала A энкодера
   pinMode(ENC_B_PIN, INPUT); // Подключение канала B энкодра
@@ -39,22 +40,21 @@ void loop() {
   //Запоминаем текущее состояние канала А во временную переменную
   int aCurrentState = digitalRead(ENC_A_PIN);
   //Проверяем направление вращения
-  if (aPresState >-1 && aPresState != aCurrentState && aCurrentState == LOW) {
+  if (aPresState > -1 && aPresState != aCurrentState && aCurrentState == LOW) {
     //Проверяем состояние порта В, чтобы определить направление вращения
     if (digitalRead(ENC_B_PIN) == HIGH) {
       //Сюда попадаем если по часовой стрелке
       if (pulse < MAX_PULSE_VAL) { // Проверяем значение на максимальное
-        pulse++;
+        pulse += PULSE_STEP;
       }
     } else {
       //Сюда попадаем если против часовой стрелки
       if (pulse > MIN_PULSE_VAL) { // Проверяем значение на минимальное
-        pulse--;
+        pulse -= PULSE_STEP;
       }
     }
     Serial.println(pulse);
   }
   servoMot.writeMicroseconds(pulse); // Установить сервомотору шим сигнал
-  //Сохраняем текущее значение порта А
-  aPresState = aCurrentState;
+  aPresState = aCurrentState; //Сохраняем текущее значение порта А
 }
